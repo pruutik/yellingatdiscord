@@ -1,9 +1,10 @@
 const five = require('johnny-five');
 const { Client, GatewayIntentBits } = require('discord.js');
-const { joinVoiceChannel } = require('@discordjs/voice');
+const { joinVoiceChannel, EndBehaviorType } = require('@discordjs/voice');
 const { OpusEncoder } = require('@discordjs/opus');
 const { voiceChannelId, token } = require('./config.json');
 
+const fs = require('fs');
 
 const client = new Client({
 	intents: [
@@ -13,8 +14,7 @@ const client = new Client({
 });
 
 var led;
-
-var extrabrightness = 0;
+var brightnessModifier = 0;
 
 const board = new five.Board();
 board.on('ready', () => {
@@ -24,8 +24,8 @@ board.on('ready', () => {
     client.login(token);
 });
 
+// https://stackoverflow.com/questions/51218090/how-to-get-amplitude-from-opus-audio
 function calcrms_lin(buffer){
-
     var rms = 0;
 
     for(var bufferIndex = 0; bufferIndex < buffer.length; bufferIndex++){
@@ -36,12 +36,7 @@ function calcrms_lin(buffer){
     rms = Math.sqrt(rms);
 
     return rms;
-
 }
-
-// function calcrms_db(buffer){
-//     return 400*Math.log10(calcrms_lin(buffer))-600;
-// }
 
 client.once('ready', () => {
     client.channels.fetch(voiceChannelId).then((channel) => {
@@ -52,40 +47,28 @@ client.once('ready', () => {
             selfDeaf: false
         });
         connection.receiver.speaking.on('start', (userId) => {
-            const subscription = connection.receiver.subscribe(userId, { end: { 
-                // behavior: EndBehaviorType.AfterSilence, 
-                duration: 10
-            }});
+            const subscription = connection.receiver.subscribe(userId, {end: EndBehaviorType.AfterSilence});
             const encoder = new OpusEncoder(48000,1);
             subscription.on("data", (audioBuffer) => {
-                // encoder.decode(chunk)
-                // console.log(audioBuffer);
+
                 let channelData = encoder.decode(audioBuffer)
-                // console.log(channelData);
+
                 // Calculate amplitude
                 let amplitude = calcrms_lin(channelData);
+                console.log(amplitude);
                 amplitude -= 100;
                 if(amplitude<0){
                     amplitude=0;
-                    extrabrightness=1;
+                    brightnessModifier=0;
                 }else{
-                    extrabrightness+=.01;
-                    amplitude=amplitude*extrabrightness;
+                    brightnessModifier+=.00001*amplitude;
+                    amplitude=amplitude*brightnessModifier;
                     if(amplitude>255)amplitude=255;
                 }
-                // amplitude += amplitude;
+
                 led.brightness(amplitude);
                 console.log(amplitude);
             })
-            // subscription.on('')
-            // speakers++;
-            // led.on();
         })
-        // connection.receiver.speaking.on('end', () => {
-        //     speakers--;
-        //     if(speakers<=0){
-        //         // led.off();
-        //     }
-        // })
     });
 });
