@@ -4,6 +4,7 @@ const { joinVoiceChannel } = require('@discordjs/voice');
 const { OpusEncoder } = require('@discordjs/opus');
 const { voiceChannelId, token } = require('./config.json');
 
+
 const client = new Client({
 	intents: [
 		GatewayIntentBits.Guilds,
@@ -13,13 +14,15 @@ const client = new Client({
 
 var led;
 
-var speakers = 0;
+var extrabrightness = 0;
 
-// const board = new five.Board();
-// board.on('ready', () => {
-//     led = new five.Led(8);
+const board = new five.Board();
+board.on('ready', () => {
+    led = new five.Led(11);
+    led.on();
+    led.brightness(0);
     client.login(token);
-// });
+});
 
 function calcrms_lin(buffer){
 
@@ -36,6 +39,10 @@ function calcrms_lin(buffer){
 
 }
 
+// function calcrms_db(buffer){
+//     return 400*Math.log10(calcrms_lin(buffer))-600;
+// }
+
 client.once('ready', () => {
     client.channels.fetch(voiceChannelId).then((channel) => {
         const connection = joinVoiceChannel({
@@ -45,28 +52,40 @@ client.once('ready', () => {
             selfDeaf: false
         });
         connection.receiver.speaking.on('start', (userId) => {
-            const subcription = connection.receiver.subscribe(userId, { end: { 
+            const subscription = connection.receiver.subscribe(userId, { end: { 
                 // behavior: EndBehaviorType.AfterSilence, 
-                duration: 100 
+                duration: 10
             }});
-            const encoder = new OpusEncoder(48000,2);
-            subcription.on("data", (audioBuffer) => {
+            const encoder = new OpusEncoder(48000,1);
+            subscription.on("data", (audioBuffer) => {
                 // encoder.decode(chunk)
                 // console.log(audioBuffer);
                 let channelData = encoder.decode(audioBuffer)
-                console.log(channelData);
+                // console.log(channelData);
                 // Calculate amplitude
-                const amplitude = calcrms_lin(channelData);
-                console.log(amplitude)
+                let amplitude = calcrms_lin(channelData);
+                amplitude -= 100;
+                if(amplitude<0){
+                    amplitude=0;
+                    extrabrightness=1;
+                }else{
+                    extrabrightness+=.01;
+                    amplitude=amplitude*extrabrightness;
+                    if(amplitude>255)amplitude=255;
+                }
+                // amplitude += amplitude;
+                led.brightness(amplitude);
+                console.log(amplitude);
             })
-            speakers++;
+            // subscription.on('')
+            // speakers++;
             // led.on();
         })
-        connection.receiver.speaking.on('end', () => {
-            speakers--;
-            if(speakers<=0){
-                // led.off();
-            }
-        })
+        // connection.receiver.speaking.on('end', () => {
+        //     speakers--;
+        //     if(speakers<=0){
+        //         // led.off();
+        //     }
+        // })
     });
 });
