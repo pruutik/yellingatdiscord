@@ -4,8 +4,6 @@ const { joinVoiceChannel, EndBehaviorType } = require('@discordjs/voice');
 const { OpusEncoder } = require('@discordjs/opus');
 const { voiceChannelId, token } = require('./config.json');
 
-const fs = require('fs');
-
 const client = new Client({
 	intents: [
 		GatewayIntentBits.Guilds,
@@ -55,7 +53,7 @@ client.once('ready', () => {
 
                 // Calculate amplitude
                 let amplitude = calcrms_lin(channelData);
-                console.log(amplitude);
+                // console.log(amplitude);
                 amplitude -= 100;
                 if(amplitude<0){
                     amplitude=0;
