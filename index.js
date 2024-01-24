@@ -12,13 +12,20 @@ const client = new Client({
 });
 
 var led;
-var brightnessModifier = 0;
-
+var lengthled;
+var soundlength = 0;
+// var buzzer;
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 const board = new five.Board();
-board.on('ready', () => {
+board.on('ready', async () => {
     led = new five.Led(11);
+    lengthled = new five.Led(10);
     led.on();
+    lengthled.on();
     led.brightness(0);
+    lengthled.brightness(0);
     client.login(token);
 });
 
@@ -27,6 +34,7 @@ function calcrms_lin(buffer){
     var rms = 0;
 
     for(var bufferIndex = 0; bufferIndex < buffer.length; bufferIndex++){
+        // console.log(buffer[bufferIndex]);
         rms+= buffer[bufferIndex]*buffer[bufferIndex];
     }
 
@@ -34,6 +42,10 @@ function calcrms_lin(buffer){
     rms = Math.sqrt(rms);
 
     return rms;
+}
+
+function calcrms_db(buffer){
+    return 20*Math.log10(calcrms_lin(buffer));
 }
 
 client.once('ready', () => {
@@ -46,25 +58,27 @@ client.once('ready', () => {
         });
         connection.receiver.speaking.on('start', (userId) => {
             const subscription = connection.receiver.subscribe(userId, {end: EndBehaviorType.AfterSilence});
-            const encoder = new OpusEncoder(48000,1);
+            const encoder = new OpusEncoder(48000, 2);
+
             subscription.on("data", (audioBuffer) => {
 
                 let channelData = encoder.decode(audioBuffer)
 
                 // Calculate amplitude
-                let amplitude = calcrms_lin(channelData);
+                let amplitude = calcrms_lin(new Int8Array(channelData));
                 // console.log(amplitude);
-                amplitude -= 100;
-                if(amplitude<0){
+                // amplitude -= 20;
+                // amplitude *= 4;
+                if(amplitude<=0){
                     amplitude=0;
-                    brightnessModifier=0;
+                    soundlength=0;
                 }else{
-                    brightnessModifier+=.00001*amplitude;
-                    amplitude=amplitude*brightnessModifier;
+                    soundlength+=0.01;
                     if(amplitude>255)amplitude=255;
                 }
 
                 led.brightness(amplitude);
+                lengthled.brightness(soundlength);
                 console.log(amplitude);
             })
         })
