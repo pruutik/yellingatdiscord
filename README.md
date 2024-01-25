@@ -13,6 +13,11 @@ The inspiration for this project was to find an alternative way to gauge engagem
 ### Hardware
 Follow [the schematic](./schematics.pdf) to set up your circuit and plug in your arduino to your computer.
 
+Materials required:
+1. 2 LEDs (different colours recommended)
+2. 1 Resistor (minimum 330 ohms recommended)
+3. [Not pictured] Any sort of diffuser placed on top of the LEDs (tissues work)
+
 ### Software
 Assuming you've installed node.js and flashed your arduino with a standard firmata, simply:
 1. Clone into this repo
