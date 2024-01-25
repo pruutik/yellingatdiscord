@@ -11,20 +11,18 @@ const client = new Client({
 	],
 });
 
-var led;
+var amplitudeled;
 var lengthled;
 var soundlength = 0;
-// var buzzer;
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+var skip = 0;
+
 const board = new five.Board();
 board.on('ready', async () => {
-    led = new five.Led(11);
+    amplitudeled = new five.Led(11);
     lengthled = new five.Led(10);
-    led.on();
+    amplitudeled.on();
     lengthled.on();
-    led.brightness(0);
+    amplitudeled.brightness(0);
     lengthled.brightness(0);
     client.login(token);
 });
@@ -32,20 +30,13 @@ board.on('ready', async () => {
 // https://stackoverflow.com/questions/51218090/how-to-get-amplitude-from-opus-audio
 function calcrms_lin(buffer){
     var rms = 0;
-
     for(var bufferIndex = 0; bufferIndex < buffer.length; bufferIndex++){
-        // console.log(buffer[bufferIndex]);
         rms+= buffer[bufferIndex]*buffer[bufferIndex];
     }
-
     rms /= buffer.length;
     rms = Math.sqrt(rms);
 
     return rms;
-}
-
-function calcrms_db(buffer){
-    return 20*Math.log10(calcrms_lin(buffer));
 }
 
 client.once('ready', () => {
@@ -77,9 +68,13 @@ client.once('ready', () => {
                     if(amplitude>255)amplitude=255;
                 }
 
-                led.brightness(amplitude);
-                lengthled.brightness(soundlength);
-                console.log(amplitude);
+                skip++;
+                if(skip>3){
+                    skip=0;
+                    amplitudeled.brightness(amplitude);
+                    lengthled.brightness(soundlength);
+                }
+                // console.log(amplitude);
             })
         })
     });
